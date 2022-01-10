@@ -57,6 +57,7 @@ BANNED:
 Even ids:
 { document_id = 0, relevance = 0.173287, rating = 2 }
 { document_id = 2, relevance = 0.173287, rating = -1 }
+*/
 
 //Подсказка
 /*
