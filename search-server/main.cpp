@@ -443,7 +443,7 @@ void TestSortingFoundDocsByRelevance() {
         const auto& doc1 = found_docs[1];
         const auto& doc2 = found_docs[2];
 
-        ASSERT_EQUAL(found_docs.size(), 3);
+        ASSERT_EQUAL(found_docs.size(), 3u);
 
         ASSERT_EQUAL(doc0.id, 6);
 
