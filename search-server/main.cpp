@@ -251,6 +251,50 @@ private:
     }
 };
 
+template <typename Key, typename Value>
+ostream& operator<<(ostream& out, const pair<Key, Value>& container) {
+    out << container.first << ": "s << container.second;
+    return out;
+}
+
+template <typename Element>
+void Print(ostream& out, const Element& container) {
+    bool is_first = true;
+    for (const auto& element : container) {
+        if (is_first) {
+            out << element;
+            is_first = false;
+        }
+        else {
+            out << ", "s << element;
+        }
+    }
+}
+
+template <typename Element>
+ostream& operator<<(ostream& out, const vector<Element>& container) {
+    out << "["s;
+    Print(out, container);
+    out << "]"s;
+    return out;
+}
+
+template <typename Element>
+ostream& operator<<(ostream& out, const set<Element>& container) {
+    out << "{"s;
+    Print(out, container);
+    out << "}"s;
+    return out;
+}
+
+template <typename Key, typename Value>
+ostream& operator<<(ostream& out, const map<Key, Value>& container) {
+    out << "{"s;
+    Print(out, container);
+    out << "}"s;
+    return out;
+}
+
 //общие тесты
 template <typename T>
 void RunTestImpl(const T& func, const string& func_str) {
@@ -305,8 +349,10 @@ void TestFindingDocumentInAddedDocument() {
     const vector<int> ratings = { 1, 2, 3 };
     {
         SearchServer server;
+
         ASSERT_EQUAL(server.FindTopDocuments("green"s).size(), 0);
     }
+
     {
         SearchServer server;
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
@@ -341,20 +387,30 @@ void TestExcludeStopWordsFromAddedDocumentContent() {
     }
 }
 
-void TestMinusWordsInAddedDocument() {
+void TestExcludingMinusWordsInAddedDocument() {
+    const int doc_id = 0;
     const string content = "green parrot from madagascar"s;
-    const string content0 = "blue parrot from madagascar"s;
     const vector<int> ratings = { 1, 2, 3 };
     {
         SearchServer server;
-        server.AddDocument(0, content, DocumentStatus::ACTUAL, ratings);
-        server.AddDocument(1, content0, DocumentStatus::ACTUAL, ratings);
-        ASSERT(server.FindTopDocuments("parrot -from"s).empty());
+        server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+        const auto found_docs = server.FindTopDocuments("parrot");
+        ASSERT_EQUAL(found_docs.size(), 1u);
+        const Document& doc0 = found_docs[0];
+        ASSERT_EQUAL(doc0.id, doc_id);
+    }
+
+    {
+        SearchServer server;
+        server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+        const auto found_docs = server.FindTopDocuments("-parrot");
+        ASSERT(found_docs.empty());
     }
 }
 
-void MatchingTest() {
+void TestMatchingDocumentsToSearchQuery() {
     const vector<int> ratings = { 1, 2, 3 };
+    const vector<string> expected_result = { "green"s,"parrot"s };
     {
         SearchServer server;
         server.AddDocument(0, "green parrot from madagascar"s, DocumentStatus::ACTUAL, ratings);
@@ -362,36 +418,42 @@ void MatchingTest() {
         server.AddDocument(2, "red parrot from indonesia"s, DocumentStatus::ACTUAL, ratings);
         server.AddDocument(3, "grey hedgehod from russia"s, DocumentStatus::ACTUAL, ratings);
         server.AddDocument(4, "white bear from north pole"s, DocumentStatus::ACTUAL, ratings);
-        const auto test0 = server.MatchDocument("green parrot"s, 0);
-        ASSERT_EQUAL(get<0>(test0).size(), 2u);
-        const auto test1 = server.MatchDocument("-blue parrot"s, 1);
-        ASSERT_EQUAL(get<0>(test1).size(), 0);
+
+        const auto [words, status] = server.MatchDocument("green parrot"s, 0);
+        ASSERT_EQUAL(words, expected_result);
+        ASSERT_EQUAL(words.size(), 2u);
+
+        const auto [words1, status1] = server.MatchDocument("-blue parrot"s, 1);
+        ASSERT(words1.empty());
     }
 }
 
-void SortByRelevanceTest() {
+void TestSortingFoundDocsByRelevance() {
     SearchServer server;
     const vector<int> ratings = { 1, 2, 3 };
     {
-        server.AddDocument(0, "green parrot from madagascar"s, DocumentStatus::ACTUAL, ratings);
-        server.AddDocument(1, "blue parrot from africa"s, DocumentStatus::ACTUAL, ratings);
-        server.AddDocument(2, "red parrot from indonesia"s, DocumentStatus::ACTUAL, ratings);
-        server.AddDocument(3, "grey hedgehod from russia"s, DocumentStatus::ACTUAL, ratings);
-        server.AddDocument(4, "white bear from north pole"s, DocumentStatus::ACTUAL, ratings);
+        server.AddDocument(6, "green parrot from madagascar"s, DocumentStatus::ACTUAL, ratings);
+        server.AddDocument(9, "blue parrot from africa"s, DocumentStatus::ACTUAL, ratings);
+        server.AddDocument(4, "red parrot from indonesia"s, DocumentStatus::ACTUAL, ratings);
+        server.AddDocument(2, "grey hedgehod from russia"s, DocumentStatus::ACTUAL, ratings);
+        server.AddDocument(0, "white bear from north pole"s, DocumentStatus::ACTUAL, ratings);
+
         const auto found_docs = server.FindTopDocuments("green parrot"s);
-        ASSERT(is_sorted(found_docs.begin(), found_docs.end(), [](const Document& lhs, const Document& rhs)
-            {
-                if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
-                    return lhs.rating > rhs.rating;
-                }
-                else {
-                    return lhs.relevance > rhs.relevance;
-                }
-            }));
+        const auto& doc0 = found_docs[0];
+        const auto& doc1 = found_docs[1];
+        const auto& doc2 = found_docs[2];
+
+        ASSERT_EQUAL(found_docs.size(), 3);
+
+        ASSERT_EQUAL(doc0.id, 6);
+
+        ASSERT_EQUAL(doc1.id, 4);
+
+        ASSERT_EQUAL(doc2.id, 9);
     }
 }
 
-void TestRatingComputingInAddedDocument() {
+void TestCalculatingRatingInFoundDocs() {
     const int doc_id = 5;
     const string content = "green parrot from madagascar"s;
     const vector<int> ratings = { 1, 2, 3 };
@@ -402,8 +464,9 @@ void TestRatingComputingInAddedDocument() {
         const auto doc = server.FindTopDocuments("parrot"s);
         ASSERT_EQUAL(doc.size(), 1u);
         const Document& doc0 = doc[0];
-        ASSERT_EQUAL(doc0.rating, 2);
+        ASSERT_EQUAL(doc0.rating, (1 + 2 + 3) / 3);
     }
+
     {
         SearchServer server;
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, minus_ratings);
@@ -414,41 +477,51 @@ void TestRatingComputingInAddedDocument() {
     }
 }
 
-void TestPredicateFiltration() {
+void TestFilteringFoundDocsByPredicate() {
     const string content = "green parrot from madagascar"s;
     const vector<int> ratings = { 1, 2, 3 };
     {
         SearchServer server;
+
         server.AddDocument(0, content, DocumentStatus::ACTUAL, ratings);
         server.AddDocument(1, content, DocumentStatus::BANNED, ratings);
         server.AddDocument(2, content, DocumentStatus::IRRELEVANT, ratings);
         server.AddDocument(3, content, DocumentStatus::REMOVED, ratings);
         server.AddDocument(4, content, DocumentStatus::ACTUAL, ratings);
+
         ASSERT_EQUAL(server.FindTopDocuments("green"s, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL; }).size(), 2u);
+
         ASSERT_EQUAL(server.FindTopDocuments("green"s, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::BANNED; }).size(), 1u);
+
         ASSERT_EQUAL(server.FindTopDocuments("green"s, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::IRRELEVANT; }).size(), 1u);
+
         ASSERT_EQUAL(server.FindTopDocuments("green"s, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::REMOVED; }).size(), 1u);
     }
 }
 
-void TestFindingDocsByStatusInAdded() {
+void TestSearchingInFoundDocsByStatus() {
     const string content = "green parrot from madagascar"s;
     const vector<int> ratings = { 1, 2, 3 };
     {
         SearchServer server;
+
         server.AddDocument(0, content, DocumentStatus::ACTUAL, ratings);
         server.AddDocument(1, content, DocumentStatus::BANNED, ratings);
         server.AddDocument(2, content, DocumentStatus::IRRELEVANT, ratings);
         server.AddDocument(3, content, DocumentStatus::REMOVED, ratings);
         server.AddDocument(4, content, DocumentStatus::ACTUAL, ratings);
+
         ASSERT_EQUAL(server.FindTopDocuments("green"s, DocumentStatus::ACTUAL).size(), 2u);
+
         ASSERT_EQUAL(server.FindTopDocuments("green"s, DocumentStatus::BANNED).size(), 1u);
+
         ASSERT_EQUAL(server.FindTopDocuments("green"s, DocumentStatus::IRRELEVANT).size(), 1u);
+
         ASSERT_EQUAL(server.FindTopDocuments("green"s, DocumentStatus::REMOVED).size(), 1u);
     }
 }
 
-void TestRelevanceComputing() {
+void TestCalculatingRelevanceInFoundDocs() {
     const vector<int> ratings = { 1, 2, 3 };
     {
         SearchServer server;
@@ -457,27 +530,34 @@ void TestRelevanceComputing() {
         server.AddDocument(2, "red parrot from indonesia"s, DocumentStatus::ACTUAL, ratings);
         server.AddDocument(3, "grey hedgehod from russia"s, DocumentStatus::ACTUAL, ratings);
         server.AddDocument(4, "white bear from north pole"s, DocumentStatus::ACTUAL, ratings);
+
         const auto doc = server.FindTopDocuments("green parrot"s);
+
         const Document& doc0 = doc[0];
-        ASSERT((doc0.relevance - 0.530066) < 1e-6);
+        double rel_0 = log(5. / 1.) * 1. / 4. + log(5. / 3.) * 1. / 4.;
+        ASSERT((doc0.relevance - rel_0) < 1e-6);
+
         const Document& doc1 = doc[1];
-        ASSERT((doc1.relevance - 0.127706) < 1e-6);
+        double rel_1 = log(5. / 3.) * 1. / 4.;
+        ASSERT((doc1.relevance - rel_1) < 1e-6);
+
         const Document& doc2 = doc[2];
-        ASSERT((doc2.relevance - 0.127706) < 1e-6);
+        double rel_2 = log(5. / 3.) * 1. / 4.;
+        ASSERT((doc2.relevance - rel_2) < 1e-6);
     }
 }
 
 // Функция TestSearchServer является точкой входа для запуска тестов
 void TestSearchServer() {
-    RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);
     RUN_TEST(TestFindingDocumentInAddedDocument);
-    RUN_TEST(TestMinusWordsInAddedDocument);
-    RUN_TEST(MatchingTest);
-    RUN_TEST(SortByRelevanceTest);
-    RUN_TEST(TestRatingComputingInAddedDocument);
-    RUN_TEST(TestPredicateFiltration);
-    RUN_TEST(TestFindingDocsByStatusInAdded);
-    RUN_TEST(TestRelevanceComputing);
+    RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);
+    RUN_TEST(TestExcludingMinusWordsInAddedDocument);
+    RUN_TEST(TestMatchingDocumentsToSearchQuery);
+    RUN_TEST(TestSortingFoundDocsByRelevance);
+    RUN_TEST(TestCalculatingRatingInFoundDocs);
+    RUN_TEST(TestFilteringFoundDocsByPredicate);
+    RUN_TEST(TestSearchingInFoundDocsByStatus);
+    RUN_TEST(TestCalculatingRelevanceInFoundDocs);
 }
 
 // --------- Окончание модульных тестов поисковой системы -----------
