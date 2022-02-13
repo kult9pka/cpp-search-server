@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 #include <optional>
-//#include <windows.h>
+#include <windows.h>
 
 using namespace std;
 
@@ -63,6 +63,7 @@ struct Document {
     int rating = 0;
 };
 
+
 template <typename StringContainer>
 set<string> MakeUniqueNonEmptyStrings(const StringContainer& strings) {
     set<string> non_empty_strings;
@@ -90,17 +91,12 @@ public:
     template <typename StringContainer>
     explicit SearchServer(const StringContainer& stop_words)
         : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
-        for (const auto& word : stop_words) {
-            if (!IsValidWord(word))
-                throw invalid_argument("Must not contain invalid characters"s);
-        }
+        if (!all_of(stop_words.begin(), stop_words.end(), IsValidWord))
+            throw invalid_argument("Must not contain invalid characters"s);
     }
 
     explicit SearchServer(const string& stop_words_text)
-        : SearchServer(SplitIntoWords(stop_words_text))  // Invoke delegating constructor from string container
-    {
-        if (!IsValidWord(stop_words_text))
-            throw invalid_argument("Must not contain invalid characters"s);
+        : SearchServer(SplitIntoWords(stop_words_text)) {
     }
 
     void AddDocument(int document_id, const string& document, DocumentStatus status,
@@ -123,9 +119,15 @@ public:
 
     template <typename DocumentPredicate>
     vector<Document> FindTopDocuments(const string& raw_query, DocumentPredicate document_predicate) const {
-        Query query;
-        if (!ParseQuery(raw_query, query)) {
-            throw invalid_argument("Incorrect request"s);
+        const Query query = ParseQuery(raw_query);
+        for (const auto& minus : query.minus_words) {
+            if (!IsValidWord(minus) || minus == ""s || minus[0] == '-')
+                throw invalid_argument("Incorrect request"s);
+        }
+
+        for (const auto& plus : query.plus_words) {
+            if (!IsValidWord(plus))
+                throw invalid_argument("Incorrect request"s);
         }
         auto matched_documents = FindAllDocuments(query, document_predicate);
 
@@ -167,12 +169,11 @@ public:
     }
 
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
-        Query query;
-        if (!ParseQuery(raw_query, query)) {
-            throw invalid_argument("Incorrect request"s);
-        }
+        const Query query = ParseQuery(raw_query);
         vector<string> matched_words;
         for (const string& word : query.plus_words) {
+            if (!IsValidWord(word))
+                throw invalid_argument("Incorrect request"s);
             if (word_to_document_freqs_.count(word) == 0) {
                 continue;
             }
@@ -181,6 +182,8 @@ public:
             }
         }
         for (const string& word : query.minus_words) {
+            if (word.empty() || word[0] == '-' || !IsValidWord(word))
+                throw invalid_argument("Incorrect request"s);
             if (word_to_document_freqs_.count(word) == 0) {
                 continue;
             }
@@ -189,7 +192,6 @@ public:
                 break;
             }
         }
-        //tuple<vector<string>, DocumentStatus> result = { matched_words, documents_.at(document_id).status };
         return { matched_words, documents_.at(document_id).status };
     }
 
@@ -246,24 +248,14 @@ private:
         bool is_stop;
     };
 
-    [[nodiscard]] bool ParseQueryWord(string text, QueryWord& result) const {
-        // Empty result by initializing it with default constructed QueryWord
-        result = {};
+    QueryWord ParseQueryWord(string text) const {
 
-        if (text.empty()) {
-            return false;
-        }
         bool is_minus = false;
         if (text[0] == '-') {
             is_minus = true;
             text = text.substr(1);
         }
-        if (text.empty() || text[0] == '-' || !IsValidWord(text)) {
-            return false;
-        }
-
-        result = QueryWord{ text, is_minus, IsStopWord(text) };
-        return true;
+        return { text, is_minus, IsStopWord(text) };;
     }
 
     struct Query {
@@ -271,24 +263,20 @@ private:
         set<string> minus_words;
     };
 
-    [[nodiscard]] bool ParseQuery(const string& text, Query& result) const {
-        // Empty result by initializing it with default constructed Query
-        result = {};
+    Query ParseQuery(const string& text) const {
+        Query query;
         for (const string& word : SplitIntoWords(text)) {
-            QueryWord query_word;
-            if (!ParseQueryWord(word, query_word)) {
-                return false;
-            }
+            const QueryWord query_word = ParseQueryWord(word);
             if (!query_word.is_stop) {
                 if (query_word.is_minus) {
-                    result.minus_words.insert(query_word.data);
+                    query.minus_words.insert(query_word.data);
                 }
                 else {
-                    result.plus_words.insert(query_word.data);
+                    query.plus_words.insert(query_word.data);
                 }
             }
         }
-        return true;
+        return query;
     }
 
     // Existence required
@@ -385,8 +373,9 @@ void MatchDocuments(const SearchServer& search_server, const string& query) {
 }
 
 int main() {
-    //SetConsoleCP(1251);
-    //SetConsoleOutputCP(1251);
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+
     SearchServer search_server("и в на"s);
 
     AddDocument(search_server, 1, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, { 7, 2, 7 });
@@ -403,4 +392,6 @@ int main() {
     MatchDocuments(search_server, "модный -кот"s);
     MatchDocuments(search_server, "модный --пёс"s);
     MatchDocuments(search_server, "пушистый - хвост"s);
+
+    return 0;
 }
