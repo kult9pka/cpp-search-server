@@ -17,6 +17,4 @@ enum class DocumentStatus {
     REMOVED,
 };
 
-const int MAX_RESULT_DOCUMENT_COUNT = 5;
-
 std::ostream& operator<<(std::ostream& out, const Document& document);
