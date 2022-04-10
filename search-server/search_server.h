@@ -10,6 +10,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <numeric>
+#include <iterator>
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
 const double ACCURACY = 1e-6;
@@ -31,6 +32,18 @@ public:
     int GetDocumentCount() const;
     int GetDocumentId(int index) const;
     std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
+
+    //std::vector<int>::const_iterator begin();
+    //std::vector<int>::const_iterator end();
+
+    std::vector<int>::iterator begin();
+    std::vector<int>::iterator end();
+
+    std::map<std::string, double>& GetWordFrequencies(int document_id) const;
+    void RemoveDocument(int document_id);
+    //void PrintBefore();
+    //void PrintAfter();
+
 private:
     struct DocumentData {
         int rating;
@@ -39,6 +52,7 @@ private:
 
     const std::set<std::string> stop_words_;
     std::map<std::string, std::map<int, double>> word_to_document_freqs_;
+    std::map<int, std::map<std::string, double>> document_to_word_freqs_;
     std::map<int, DocumentData> documents_;
     std::vector<int> document_ids_;
 
@@ -64,7 +78,7 @@ private:
     double ComputeWordInverseDocumentFreq(const std::string& word) const;
 
     template <typename DocumentPredicate>
-    std::vector<Document> FindAllDocuments(const Query& query, DocumentPredicate document_predicate) const;
+    std::vector<Document> FindAllDocuments(const Query& query, DocumentPredicate document_predicate) const;    
 };
 
 template <typename StringContainer>
@@ -124,5 +138,5 @@ std::vector<Document> SearchServer::FindAllDocuments(const Query& query, Documen
         matched_documents.push_back(
             { document_id, relevance, documents_.at(document_id).rating });
     }
-    return matched_documents;
+    return matched_documents;    
 }
