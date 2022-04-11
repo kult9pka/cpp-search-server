@@ -135,22 +135,21 @@ set<int>::iterator SearchServer::end() {
     return document_ids_.end();
 }
 
-map<string, double>& SearchServer::GetWordFrequencies(int document_id) const {
-    static map<string, double> word_frequencies;
+const map<string, double>& SearchServer::GetWordFrequencies(int document_id) const {
+    const map<string, double> word_frequencies;
     if (document_to_word_freqs_.count(document_id)) {
-        word_frequencies = document_to_word_freqs_.at(document_id);
-        return word_frequencies;
+        return document_to_word_freqs_.at(document_id);
     }
     return word_frequencies;
 }
 
 void SearchServer::RemoveDocument(int document_id) {
     if (document_to_word_freqs_.count(document_id)) {
-        for (const auto& word : document_to_word_freqs_.at(document_id)) {
-            auto& v = word_to_document_freqs_.at(word.first);
-            v.erase(document_id);            
-            if (v.empty())
-                word_to_document_freqs_.erase(word.first);
+        for (const auto& [target_word,_] : document_to_word_freqs_.at(document_id)) {
+            auto& doc_by_target_word = word_to_document_freqs_.at(target_word);
+            doc_by_target_word.erase(document_id);
+            if (doc_by_target_word.empty())
+                word_to_document_freqs_.erase(target_word);
         }
     }
     

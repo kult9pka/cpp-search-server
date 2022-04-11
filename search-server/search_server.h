@@ -35,7 +35,7 @@ public:
     std::set<int>::iterator begin();
     std::set<int>::iterator end();
 
-    std::map<std::string, double>& GetWordFrequencies(int document_id) const;
+    const std::map<std::string, double>& GetWordFrequencies(int document_id) const;
     void RemoveDocument(int document_id);
 
 private:
