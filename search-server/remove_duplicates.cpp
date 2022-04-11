@@ -1,28 +1,29 @@
 #include "remove_duplicates.h"
+#include "log_duration.h"
 
 using namespace std;
 
-bool operator==(const map<string, double> lhs, const map<string, double> rhs) {
-	if (!(lhs.size() == rhs.size()))
-		return false;
-	set<string> tmp1, tmp2;
-	for (const auto& doc : lhs) {
-		tmp1.insert(doc.first);
-	}
-	for (const auto& doc : rhs) {
-		tmp2.insert(doc.first);
-	}
-	if (tmp1 != tmp2)
-		return false;
-	return true;
-}
-
 void RemoveDuplicates(SearchServer& search_server) {
 	set<int> duplicate;
-	for (auto iter1 = search_server.begin(); iter1 != search_server.end(); ++iter1)
-		for (auto iter2 = iter1 + 1; iter2 != search_server.end(); ++iter2)
-			if (search_server.GetWordFrequencies(*iter1) == search_server.GetWordFrequencies(*iter2))
-				duplicate.insert(*iter2);
+	map<set<string>, int> unique;
+	for (const auto& s : search_server) {
+		set<string> some;
+		auto& v = search_server.GetWordFrequencies(s);
+		for (auto it = v.begin(); it != v.end(); ++it) {
+			some.insert(it->first);
+		}
+		if (unique.empty()) {
+			unique.insert({ some, s });
+		}
+		else {
+			if (unique.count(some)) {
+				duplicate.insert(s);
+			}
+			else {
+				unique.insert({ some, s });
+			}
+		}
+	}
 	if (!duplicate.empty()) {
 		for (const auto& num : duplicate) {
 			cout << "Found duplicate document id "s << num << endl;
@@ -30,3 +31,4 @@ void RemoveDuplicates(SearchServer& search_server) {
 		}
 	}
 }
+

@@ -25,7 +25,6 @@ public:
 		const std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
 		const std::chrono::steady_clock::duration duration = end_time - start_time;
         double dur = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-		//std::cerr << text << text1 << ": "s << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() << " ms"s << std::endl;
         out_ << text << ": "s << dur << " ms"s << std::endl;
 	}
 private:
@@ -33,34 +32,3 @@ private:
     const std::string text = "Operation time";
     std::ostream& out_ = std::cerr;
 };
-
-/*
-ПОЛЕЗНАЯ ФИШКА С ПРОСТРАНСТВОМ ИМЕН НИЖЕ !
-
-#pragma once
-
-#include <chrono>
-#include <iostream>
-
-class LogDuration {
-public:
-    // заменим имя типа std::chrono::steady_clock
-    // с помощью using для удобства
-    using Clock = std::chrono::steady_clock;
-
-    LogDuration() {
-    }
-
-    ~LogDuration() {
-        using namespace std::chrono;
-        using namespace std::literals;
-
-        const auto end_time = Clock::now();
-        const auto dur = end_time - start_time_;
-        std::cerr << ": "s << duration_cast<milliseconds>(dur).count() << " ms"s << std::endl;
-    }
-
-private:
-    const Clock::time_point start_time_ = Clock::now();
-};
-*/
