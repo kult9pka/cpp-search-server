@@ -2,22 +2,21 @@
 
 using namespace std;
 
-vector<string> SplitIntoWords(const string& text) {
-    vector<string> words;
-    string word;
-    for (const char c : text) {
-        if (c == ' ') {
-            if (!word.empty()) {
-                words.push_back(word);
-                word.clear();
-            }
+vector<string_view> SplitIntoWords(string_view text) {
+
+    vector<string_view> result;
+    text.remove_prefix(min(text.find_first_not_of(" "), text.size()));
+    while (!text.empty()) {
+        size_t pos = text.find(" ");
+        result.push_back(text.substr(0, pos));
+
+        if (pos == text.npos) {
+            text.remove_prefix(text.size());
         }
         else {
-            word += c;
+            text.remove_prefix(pos);
+            text.remove_prefix(min(text.find_first_not_of(" "), text.size()));
         }
     }
-    if (!word.empty()) {
-        words.push_back(word);
-    }
-    return words;
+    return result;
 }
