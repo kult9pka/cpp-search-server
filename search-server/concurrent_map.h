@@ -18,7 +18,6 @@ private:
     };
 
 public:
-    //static_assert(std::is_integral_v<Key>, "ConcurrentMap supports only integer keys"s);
 
     struct Access {
         std::lock_guard<std::mutex> guard;

@@ -23,7 +23,7 @@ void SearchServer::AddDocument(int document_id, const string_view document, Docu
     const auto words = SplitIntoWordsNoStop(document);
     const double inv_word_count = 1.0 / words.size();
     for (const string_view word : words) {
-        storage.emplace(storage.begin(), word);   //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   EDITED
+        storage.emplace(storage.begin(), word);
         word_to_document_freqs_[storage.front()][document_id] += inv_word_count;
         document_to_word_freqs_[document_id][storage.front()] += inv_word_count;
     }
@@ -136,20 +136,6 @@ tuple<vector<string_view>, DocumentStatus> SearchServer::MatchDocument(execution
             return (freqs.count(word) && freqs.at(word).count(document_id));
         }
     );
-    //bool state = count_if(
-    //    execution::par,
-    //    matched_end, matched_words.end(),
-    //    [](const string_view word) {
-    //        return word == ""s;
-    //    }
-    //);
-    //if (state) {
-    //    matched_words.erase(matched_end, matched_words.end());
-    //}
-
-    //sort(execution::par, matched_words.begin(), matched_words.end());
-    //auto unique_words_end = unique(execution::par, matched_words.begin(), matched_words.end());
-    //matched_words.erase(unique_words_end, matched_words.end());
 
     sort(execution::par, matched_words.begin(), matched_end);
     auto unique_words_end = unique(execution::par, matched_words.begin(), matched_end);
@@ -180,6 +166,8 @@ vector<string_view> SearchServer::SplitIntoWordsNoStop(string_view text) const {
     return words;
 }
 int SearchServer::ComputeAverageRating(const vector<int>& ratings) {
+    if (ratings.empty())
+        return 0;
     return accumulate(ratings.begin(), ratings.end(), 0) / static_cast<int>(ratings.size());
 }
 

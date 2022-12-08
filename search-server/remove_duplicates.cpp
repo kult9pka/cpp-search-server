@@ -4,19 +4,14 @@
 using namespace std;
 
 void RemoveDuplicates(SearchServer& search_server) {
-	//прошу прощения, решение как всегда пришло в голову именно тогда, когда уже начал сильно опаздывать на работу :(
-	//поэтому я гнался за работоспособностью кода, а не его эстетическим видом
-	//отсюда и появились всякие s, v, some и прочие непонятные символы :)  
 	
 	set<int> duplicate_documents_ids;
 	map<set<string>, int> unique_documents;
 	for (const auto& id : search_server) {
 		set<string> set_of_words;
 		const auto& doc_to_check = search_server.GetWordFrequencies(id);
-
-		//не понимаю, как применить std::transform, поэтому range-based for:
 		for (const auto& [words, _] : doc_to_check) {
-			set_of_words.insert(words);
+			set_of_words.insert(string(words));
 		}				
 		if (unique_documents.empty()) {
 			unique_documents.insert({ set_of_words, id });
