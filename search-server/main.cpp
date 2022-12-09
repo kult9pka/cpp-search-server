@@ -69,7 +69,7 @@ void Test(string_view mark, const SearchServer& search_server, const vector<stri
 #define TEST(policy) Test(#policy, search_server, queries, execution::policy)
 
 int main() {
-    TestSearchServer(); //îáùèå òåñòû ïîèñêîâîé ñèñòåìû
+    TestSearchServer(); //Ð¾Ð±Ñ‰Ð¸Ðµ Ñ‚ÐµÑÑ‚Ñ‹ Ð¿Ð¾Ð¸ÑÐºÐ¾Ð²Ð¾Ð¹ ÑÐ¸ÑÑ‚ÐµÐ¼Ñ‹
     mt19937 generator;
 
     const auto dictionary = GenerateDictionary(generator, 1000, 10);
@@ -82,7 +82,7 @@ int main() {
 
     const auto queries = GenerateQueries(generator, dictionary, 100, 70);
     
-    //òåñò ïàðàëëåëüíîñòè
+    //Ñ‚ÐµÑÑ‚ Ð¿Ð°Ñ€Ð°Ð»Ð»ÐµÐ»ÑŒÐ½Ð¾ÑÑ‚Ð¸
     TEST(seq);
     TEST(par);
 }
