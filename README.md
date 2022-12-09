@@ -1,31 +1,32 @@
 # cpp-search-server
+## Additional languages: [Русский](Russian/README.md)
 
-Разработано консольное приложение – поисковый сервер. 
+Developed a console application - search server. 
 
-### Приложение работает в два этапа: 
-1.	Добавление документов в систему.
-2.	Выдача ранжированных по релевантности документов по запросу.
+### The application works in two steps: 
+1.	Adding documents in the system.
+2.	Issuance of documents on request ranked by relevance.
 
-### Основные возможности:
-*	Поддержка стоп слов.
-*	Поддержка минус слов.
-* 	Поддержка многопоточности.
-* 	Поддержка очереди запросов.
-*	Поддержка многостраничного вывода.
-*	Поиск и удаление дубликатов.
+### Main features:
+*	Stop-words supporting.
+*	Minus-words supporting.
+* 	Multithread supporting.
+* 	Queueing of requests supporting.
+*	Multipage output supporting.
+*	Finding and deleting duplicates.
 
-### Краткое описание функционала:
+### Brief overview of functionality:
 
-* **concurrent_map.h** - класс, гарантирующий потокобезопасную работу со словарем (map).
-* **document.h** - реализация структуры документа.
-* **log_duration.h** - профилировщик.
-* **paginator.h** - класс, отвечающий за разделение результатов выдачи на страницы.
-* **process_queries.h** - реализация распараллеливания обработки нескольких запросов к поисковой системе.
-* **read_input_functions.h** - реализация считывания данных из потока.
-* **remove_duplicates.h** - реализация поиска и удаления дубликатов.
-* **request_queue.h** - реализация очереди запросов.
-* **search_server.h** - реализация поискового сервера.
-* **string_processing.h** - обработка строк.
-* **test_example_functions.h** - содержит тесты, покрывающие основной функционал поискового сервера. 
+* **concurrent_map.h** - class providing thread-safe operation with the map container.
+* **document.h** - realisation of the document structure.
+* **log_duration.h** - the profiler.
+* **paginator.h** - class responsible for multi-paging output of the results of searching.
+* **process_queries.h** - realisation of multithreading of the query processing.
+* **read_input_functions.h** - realisation of data reading from stream.
+* **remove_duplicates.h** - realisation of finding and removing duplicates in database of server.
+* **request_queue.h** - request queueing realisation.
+* **search_server.h** - realisation of the search server.
+* **string_processing.h** - realisation of string processing.
+* **test_example_functions.h** - contains tests that cover the basic functionality of the search server. 
 
-*Примеры работы и покрытие тестами отражено в main.cpp*
+*Tests and operation examples reflected in the main.cpp*
